@@ -146,7 +146,10 @@ public struct SheetView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { sourceExpanded.toggle() }
                 .accessibilityIdentifier("source-text")
-            speakButton(.source, text: model.input, language: model.source)
+            VStack(spacing: 4) {
+                speakButton(.source, text: model.input, language: model.source)
+                searchButton(for: model.input, identifier: "search-source")
+            }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.08)))
@@ -162,6 +165,7 @@ public struct SheetView: View {
             HStack {
                 Spacer()
                 speakButton(.result, text: model.output, language: model.outputLanguage, enabled: model.phase == .done)
+                searchButton(for: model.output, identifier: "search-result", enabled: model.phase == .done)
             }
         }
         .padding(12)
@@ -203,6 +207,29 @@ public struct SheetView: View {
         .disabled(!enabled || text.isEmpty)
         .accessibilityLabel(playing ? "Stop reading" : "Read aloud")
         .accessibilityIdentifier("speak-\(channel.rawValue)")
+    }
+
+    /// Searches `text` on the default engine, as web or image results. Shown on the source and the result.
+    private func searchButton(for text: String, identifier: String, enabled: Bool = true) -> some View {
+        Menu {
+            ForEach(SearchKind.allCases) { kind in
+                Button {
+                    search(kind, text)
+                } label: {
+                    Label("\(kind.title) on \(model.searchEngine.title)", systemImage: kind.symbol)
+                }
+            }
+        } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.body)
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.secondary)
+        .disabled(!enabled || text.isEmpty)
+        .accessibilityLabel("Search this text")
+        .accessibilityIdentifier(identifier)
     }
 
     // MARK: Quick prompt and toolbar
@@ -247,8 +274,6 @@ public struct SheetView: View {
             }
             .disabled(model.isRunning || model.unavailableReason != nil)
 
-            searchMenu
-
             Spacer(minLength: 8)
 
             if allowsReplacement && model.action.output == .replace {
@@ -266,26 +291,6 @@ public struct SheetView: View {
         }
     }
 
-    private var searchMenu: some View {
-        Menu {
-            ForEach(SearchKind.allCases) { kind in
-                Button {
-                    search(kind)
-                } label: {
-                    Label("\(kind.title) on \(model.searchEngine.title)", systemImage: kind.symbol)
-                }
-                .accessibilityIdentifier("search-\(kind.rawValue)")
-            }
-        } label: {
-            Image(systemName: "magnifyingglass")
-                .font(.title3)
-                .frame(width: 40, height: 40)
-                .contentShape(Rectangle())
-        }
-        .accessibilityLabel("Search the text")
-        .accessibilityIdentifier("search-menu")
-    }
-
     private func iconButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
@@ -297,8 +302,8 @@ public struct SheetView: View {
         .accessibilityLabel(label)
     }
 
-    private func search(_ kind: SearchKind) {
-        guard let url = SearchURL.url(for: model.input, engine: model.searchEngine, kind: kind) else { return }
+    private func search(_ kind: SearchKind, _ text: String) {
+        guard let url = SearchURL.url(for: text, engine: model.searchEngine, kind: kind) else { return }
         openURL(url)
     }
 

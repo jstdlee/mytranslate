@@ -42,6 +42,8 @@ final class SheetUITests: XCTestCase {
         XCTAssertTrue(waitForLabel(result, "Demo · Translate → 简体中文"))
         XCTAssertTrue(app.buttons["speak-source"].exists)
         XCTAssertTrue(app.buttons["speak-result"].exists)
+        XCTAssertTrue(app.buttons["search-source"].exists)
+        XCTAssertTrue(app.buttons["search-result"].exists)
         screenshot(app, "02-sheet-opens-auto-detected")
 
         // The source menu: Auto is the default; open it, then close it with "Detect language".
