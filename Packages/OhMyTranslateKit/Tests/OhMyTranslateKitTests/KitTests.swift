@@ -319,7 +319,7 @@ final class MockProvider: LLMProvider, @unchecked Sendable {
 
     @Test func settingsSavedByEarlierBuildsStillLoad() throws {
         // Only the fields that existed before search was added.
-        let old = #"{"languages":{"pinned":["en"],"primary":"en","secondary":"ja"},"actions":[],"engine":{"kind":"demo","anthropicModel":"claude-opus-5-5","openAIBaseURL":"","openAIModel":""},"lastActionID":"polish"}"#
+        let old = #"{"languages":{"pinned":[{"code":"en"}],"primary":{"code":"en"},"secondary":{"code":"ja"}},"actions":[],"engine":{"kind":"demo","anthropicModel":"claude-opus-5-5","openAIBaseURL":"","openAIModel":""},"lastActionID":"polish"}"#
         let settings = try JSONDecoder().decode(AppSettings.self, from: Data(old.utf8))
         #expect(settings.searchEngine == .duckDuckGo)
         #expect(settings.lastActionID == "polish")
