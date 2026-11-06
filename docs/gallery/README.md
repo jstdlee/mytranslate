@@ -7,42 +7,46 @@ Simulator: iPhone 17 Pro, iOS 26.2.
 
 ![01-try-it](01-try-it.png)
 
-### 02-sheet-opens-translating
+### Translate opens the sheet, language detected
 
-![02-sheet-opens-translating](02-sheet-opens-translating.png)
+![02-sheet-opens-auto-detected](02-sheet-opens-auto-detected.png)
 
-### 03-sheet-language-switched
+### Source language: detect, or pick one
 
-![03-sheet-language-switched](03-sheet-language-switched.png)
+![03-sheet-source-menu](03-sheet-source-menu.png)
 
-### 04-sheet-action-switched
+### Tap a language: it runs again
 
-![04-sheet-action-switched](04-sheet-action-switched.png)
+![04-sheet-language-switched](04-sheet-language-switched.png)
 
-### 05-sheet-quick-prompt-typed
+### Tap an action: Polish, same text
 
-![05-sheet-quick-prompt-typed](05-sheet-quick-prompt-typed.png)
+![05-sheet-action-switched](05-sheet-action-switched.png)
 
-### 06-sheet-quick-prompt-result
+### Quick prompt: say what to change
 
-![06-sheet-quick-prompt-result](06-sheet-quick-prompt-result.png)
+![06-sheet-quick-prompt-typed](06-sheet-quick-prompt-typed.png)
 
-### 07-replaced-in-text
+### The quick prompt's result, streamed
 
-![07-replaced-in-text](07-replaced-in-text.png)
+![07-sheet-quick-prompt-result](07-sheet-quick-prompt-result.png)
 
-### 08-tab-actions
+### Replace writes it back into the text
 
-![08-tab-actions](08-tab-actions.png)
+![08-replaced-in-text](08-replaced-in-text.png)
 
-### 09-tab-languages
+### Actions: which chips show, and their order
 
-![09-tab-languages](09-tab-languages.png)
+![09-tab-actions](09-tab-actions.png)
 
-### 10-tab-engine
+### Settings: languages and the default search
 
-![10-tab-engine](10-tab-engine.png)
+![10-tab-settings](10-tab-settings.png)
 
-### 11-tab-set-up
+### Engine: Claude, OpenAI-compatible, on-device or demo
 
-![11-tab-set-up](11-tab-set-up.png)
+![11-tab-engine](11-tab-engine.png)
+
+### Set up: make it the default Translate
+
+![12-tab-set-up](12-tab-set-up.png)

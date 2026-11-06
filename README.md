@@ -14,12 +14,12 @@ The full list with notes is in [docs/gallery](docs/gallery/README.md).
 <!-- gallery:start -->
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
-| <img src="docs/gallery/01-try-it.png" width="200" alt="Try it: the app with sample text"> | <img src="docs/gallery/02-sheet-opens-translating.png" width="200" alt="02-sheet-opens-translating"> | <img src="docs/gallery/03-sheet-language-switched.png" width="200" alt="03-sheet-language-switched"> | <img src="docs/gallery/04-sheet-action-switched.png" width="200" alt="04-sheet-action-switched"> |
-| **Try it: the app with sample text** | **02-sheet-opens-translating** | **03-sheet-language-switched** | **04-sheet-action-switched** |
-| <img src="docs/gallery/05-sheet-quick-prompt-typed.png" width="200" alt="05-sheet-quick-prompt-typed"> | <img src="docs/gallery/06-sheet-quick-prompt-result.png" width="200" alt="06-sheet-quick-prompt-result"> | <img src="docs/gallery/07-replaced-in-text.png" width="200" alt="07-replaced-in-text"> | <img src="docs/gallery/08-tab-actions.png" width="200" alt="08-tab-actions"> |
-| **05-sheet-quick-prompt-typed** | **06-sheet-quick-prompt-result** | **07-replaced-in-text** | **08-tab-actions** |
-| <img src="docs/gallery/09-tab-languages.png" width="200" alt="09-tab-languages"> | <img src="docs/gallery/10-tab-engine.png" width="200" alt="10-tab-engine"> | <img src="docs/gallery/11-tab-set-up.png" width="200" alt="11-tab-set-up"> | |
-| **09-tab-languages** | **10-tab-engine** | **11-tab-set-up** | |
+| <img src="docs/gallery/01-try-it.png" width="200" alt="Try it: the app with sample text"> | <img src="docs/gallery/02-sheet-opens-auto-detected.png" width="200" alt="Translate opens the sheet, language detected"> | <img src="docs/gallery/03-sheet-source-menu.png" width="200" alt="Source language: detect, or pick one"> | <img src="docs/gallery/04-sheet-language-switched.png" width="200" alt="Tap a language: it runs again"> |
+| **Try it: the app with sample text** | **Translate opens the sheet, language detected** | **Source language: detect, or pick one** | **Tap a language: it runs again** |
+| <img src="docs/gallery/05-sheet-action-switched.png" width="200" alt="Tap an action: Polish, same text"> | <img src="docs/gallery/06-sheet-quick-prompt-typed.png" width="200" alt="Quick prompt: say what to change"> | <img src="docs/gallery/07-sheet-quick-prompt-result.png" width="200" alt="The quick prompt's result, streamed"> | <img src="docs/gallery/08-replaced-in-text.png" width="200" alt="Replace writes it back into the text"> |
+| **Tap an action: Polish, same text** | **Quick prompt: say what to change** | **The quick prompt's result, streamed** | **Replace writes it back into the text** |
+| <img src="docs/gallery/09-tab-actions.png" width="200" alt="Actions: which chips show, and their order"> | <img src="docs/gallery/10-tab-settings.png" width="200" alt="Settings: languages and the default search"> | <img src="docs/gallery/11-tab-engine.png" width="200" alt="Engine: Claude, OpenAI-compatible, on-device or demo"> | <img src="docs/gallery/12-tab-set-up.png" width="200" alt="Set up: make it the default Translate"> |
+| **Actions: which chips show, and their order** | **Settings: languages and the default search** | **Engine: Claude, OpenAI-compatible, on-device or demo** | **Set up: make it the default Translate** |
 <!-- gallery:end -->
 
 ## Engines
