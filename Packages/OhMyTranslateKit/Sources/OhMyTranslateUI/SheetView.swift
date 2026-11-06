@@ -79,15 +79,13 @@ public struct SheetView: View {
                 Label("Detect language", systemImage: model.sourceChoice == nil ? "checkmark" : "sparkles")
             }
             Divider()
-            ForEach(model.sourceOptions) { language in
-                Button {
-                    model.selectSource(language)
-                } label: {
-                    if language == model.sourceChoice {
-                        Label(language.chipLabel, systemImage: "checkmark")
-                    } else {
-                        Text(language.chipLabel)
-                    }
+            // Short list first; the rest sit in a submenu so the menu stays easy to scan.
+            ForEach(model.languages) { language in
+                sourceItem(language)
+            }
+            Menu("All languages") {
+                ForEach(model.sourceOptions) { language in
+                    sourceItem(language)
                 }
             }
         } label: {
@@ -103,6 +101,18 @@ public struct SheetView: View {
         }
         .accessibilityLabel("Source language, \(sourceTitle)")
         .accessibilityIdentifier("source-menu")
+    }
+
+    private func sourceItem(_ language: Language) -> some View {
+        Button {
+            model.selectSource(language)
+        } label: {
+            if language == model.sourceChoice {
+                Label(language.chipLabel, systemImage: "checkmark")
+            } else {
+                Text(language.chipLabel)
+            }
+        }
     }
 
     private var sourceTitle: String {
