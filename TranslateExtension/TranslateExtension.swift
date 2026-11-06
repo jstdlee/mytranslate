@@ -7,6 +7,7 @@ import TranslationUIProvider
 /// Opens from the system "Translate" item in the text-selection menu, once OhMyTranslate is
 /// the default translation app (Settings › Apps › Default Apps › Translation).
 @main
+@MainActor
 final class OhMyTranslateExtension: TranslationUIProviderExtension {
     required init() {}
 
