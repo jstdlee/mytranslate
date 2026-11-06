@@ -47,7 +47,7 @@ struct TryItView: View {
     private func open() {
         let model = SheetModel(
             input: text, settings: store.settings,
-            provider: Engines.provider(for: store.settings.engine, demo: demo)
+            provider: Engines.provider(for: store.settings.engine, consented: store.settings.aiConsent, demo: demo)
         )
         model.onActionUsed = { id in store.settings.lastActionID = id }
         sheet = model
@@ -86,6 +86,17 @@ struct ActionsView: View {
 
 struct SettingsView: View {
     @Bindable var store: SettingsStore
+    @State private var confirmErase = false
+
+    private var appVersion: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? ""
+    }
+
+    private func eraseAll() {
+        store.settings = AppSettings()
+        Secrets.set("", for: Secrets.anthropic)
+        Secrets.set("", for: Secrets.openAI)
+    }
 
     var body: some View {
         NavigationStack {
@@ -109,6 +120,20 @@ struct SettingsView: View {
                 } footer: {
                     Text("The search button on the sheet opens web or image results on this engine. DuckDuckGo doesn't build a profile of what you search for.")
                 }
+                Section {
+                    Button("Erase all data", role: .destructive) { confirmErase = true }
+                        .accessibilityIdentifier("erase-data")
+                } header: {
+                    Text("Your data")
+                } footer: {
+                    Text("Removes your settings, actions and API keys from this iPhone. OhMyTranslate keeps nothing on a server.")
+                }
+                Section("About") {
+                    LabeledContent("Version", value: appVersion)
+                    Link("Privacy policy", destination: AppLinks.privacy)
+                    Link("Terms of use", destination: AppLinks.terms)
+                    Link("Report a problem", destination: AppLinks.support)
+                }
                 Section("Chips on the sheet") {
                     ForEach(Language.all) { language in
                         let pinned = store.settings.languages.pinned.contains(language)
@@ -127,6 +152,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .confirmationDialog("Erase all OhMyTranslate data?", isPresented: $confirmErase, titleVisibility: .visible) {
+                Button("Erase", role: .destructive) { eraseAll() }
+            } message: {
+                Text("This removes your settings, actions and API keys from this iPhone.")
+            }
         }
     }
 

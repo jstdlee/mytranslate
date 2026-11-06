@@ -174,12 +174,12 @@ final class MockProvider: LLMProvider, @unchecked Sendable {
     @Test func missingKeyExplainsWhatToDo() {
         var config = EngineConfig()
         config.kind = .anthropic
-        guard case .failure(let error) = Engines.provider(for: config, key: { _ in nil }) else {
+        guard case .failure(let error) = Engines.provider(for: config, consented: true, key: { _ in nil }) else {
             Issue.record("expected failure"); return
         }
         #expect(error.errorDescription?.contains("API key") == true)
-        if case .failure = Engines.provider(for: config, key: { _ in "k" }) { Issue.record("expected provider") }
-        if case .failure = Engines.provider(for: config, demo: true, key: { _ in nil }) { Issue.record("demo should work") }
+        if case .failure = Engines.provider(for: config, consented: true, key: { _ in "k" }) { Issue.record("expected provider") }
+        if case .failure = Engines.provider(for: config, consented: false, demo: true, key: { _ in nil }) { Issue.record("demo should work") }
     }
 }
 
@@ -324,6 +324,7 @@ final class MockProvider: LLMProvider, @unchecked Sendable {
         #expect(settings.searchEngine == .duckDuckGo)
         #expect(settings.lastActionID == "polish")
         #expect(settings.engine.kind == .demo)
+        #expect(settings.aiConsent == false)
     }
 }
 
@@ -385,5 +386,38 @@ final class MockProvider: LLMProvider, @unchecked Sendable {
         settings.searchEngine = .google
         let sheet = SheetModel(input: "x", settings: settings, provider: .success(MockProvider()), detector: FixedDetector(language: nil))
         #expect(sheet.searchEngine == .google)
+    }
+}
+
+
+@Suite struct ConsentTests {
+    var claude: EngineConfig {
+        var config = EngineConfig()
+        config.kind = .anthropic
+        return config
+    }
+
+    @Test func remoteEnginesNeedConsentBeforeAnyText() {
+        guard case .failure(let error) = Engines.provider(for: claude, consented: false, key: { _ in "k" }) else {
+            Issue.record("expected a refusal without consent"); return
+        }
+        #expect(error.errorDescription?.contains("Allow sending text") == true)
+    }
+
+    @Test func consentWithAKeyEnablesClaude() {
+        if case .failure = Engines.provider(for: claude, consented: true, key: { _ in "k" }) {
+            Issue.record("expected Claude to be enabled with consent")
+        }
+    }
+
+    @Test func demoNeedsNoConsentAndNothingLeaves() {
+        if case .failure = Engines.provider(for: claude, consented: false, demo: true, key: { _ in nil }) {
+            Issue.record("demo should always work")
+        }
+        var config = EngineConfig()
+        config.kind = .demo
+        #expect(config.sendsTextOffDevice == false)
+        #expect(claude.sendsTextOffDevice == true)
+        #expect(config.kind == .demo)
     }
 }

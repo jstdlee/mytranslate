@@ -29,6 +29,11 @@ struct RootView: View {
     @Bindable var store: SettingsStore
     let demo: Bool
 
+    /// Remote engines need consent before any text is sent. Demo and on-device never send text.
+    private var needsConsent: Bool {
+        !demo && store.settings.engine.sendsTextOffDevice && !store.settings.aiConsent
+    }
+
     var body: some View {
         TabView {
             Tab("Try it", systemImage: "text.cursor") {
@@ -46,6 +51,9 @@ struct RootView: View {
             Tab("Set up", systemImage: "checklist") {
                 SetupView()
             }
+        }
+        .sheet(isPresented: Binding(get: { needsConsent }, set: { _ in })) {
+            ConsentView(store: store)
         }
     }
 }

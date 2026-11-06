@@ -33,18 +33,17 @@ The full list with notes is in [docs/gallery](docs/gallery/README.md).
 
 ## Privacy
 
-- No accounts, no sign-in, and no analytics in the app.
-- Your API keys are kept in the Keychain and sent only to the engine you chose.
-- Text is sent only when you tap an action, and only to that engine.
+- No accounts, no sign-in, no analytics, no tracking. There is no OhMyTranslate server.
+- Text leaves your iPhone only when you tap an action, and only to the engine you chose. Before that happens, the app asks you to allow it.
+- Your API keys are kept in the Keychain. **Settings › Your data › Erase all data** removes everything.
+- Full details: [Privacy policy](docs/PRIVACY.md) · [Terms of use](docs/TERMS.md) (draft, pending legal review)
 
 ## Status
 
-Early build, under active development.
+Release candidate for **1.0.0**, iPhone only. See [docs/RELEASE.md](docs/RELEASE.md) for the App Store checklist and what is still needed before submission.
 
-- **Working:** the Translate menu sheet, language and action chips, quick prompts, Replace and Copy, the Claude, OpenAI-compatible, on-device and demo engines, and the settings tabs.
-- **Next:** agent mode for longer writing jobs, an editor for your own actions, and Apple's offline translation as an engine.
-
-The full design, with the reasoning behind these choices, is in [docs/DESIGN.md](docs/DESIGN.md).
+- **Working:** the Translate menu sheet, auto-detected source with a manual override, target and action chips, quick prompts, Replace and Copy, read-aloud for the source and the result, search on the source and the result (DuckDuckGo or Google, web or images), the Claude, OpenAI-compatible, on-device and demo engines, consent, and the settings.
+- **Not yet:** agent mode for longer writing jobs, an editor for your own actions, and Apple's offline translation as an engine.
 
 ## Build and test
 
@@ -59,6 +58,10 @@ scripts/build-ipa.sh                                   # unsigned device .ipa
 GitHub Actions (`.github/workflows/ios.yml`) runs all of these on every push.
 
 On a device, set your team on both targets, and enable the **Translation**, **App Groups** (`group.com.jstdlee.ohmytranslate`) and **Keychain Sharing** capabilities when Xcode asks.
+
+## Support
+
+Found a bug or have an idea? [Open an issue](https://github.com/jstdlee/mytranslate/issues).
 
 ## Layout
 

@@ -24,6 +24,9 @@ public struct EngineConfig: Codable, Hashable, Sendable {
     public var openAIBaseURL: String = ""
     public var openAIModel: String = ""
 
+    /// True when the text the user selects leaves the iPhone for this engine.
+    public var sendsTextOffDevice: Bool { kind == .anthropic || kind == .openAICompatible }
+
     public init() {}
 }
 
@@ -33,11 +36,13 @@ public struct AppSettings: Codable, Hashable, Sendable {
     public var engine = EngineConfig()
     public var lastActionID: String = WritingAction.translate.id
     public var searchEngine: SearchEngine = .duckDuckGo
+    /// The user agreed that selected text may be sent to the engine above (App Store guideline 5.1.2(i)).
+    public var aiConsent: Bool = false
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case languages, actions, engine, lastActionID, searchEngine
+        case languages, actions, engine, lastActionID, searchEngine, aiConsent
     }
 
     /// Missing keys fall back to defaults, so settings saved by earlier builds still load.
@@ -48,6 +53,7 @@ public struct AppSettings: Codable, Hashable, Sendable {
         engine = try c.decodeIfPresent(EngineConfig.self, forKey: .engine) ?? EngineConfig()
         lastActionID = try c.decodeIfPresent(String.self, forKey: .lastActionID) ?? WritingAction.translate.id
         searchEngine = try c.decodeIfPresent(SearchEngine.self, forKey: .searchEngine) ?? .duckDuckGo
+        aiConsent = try c.decodeIfPresent(Bool.self, forKey: .aiConsent) ?? false
     }
 
     public var pinnedActions: [WritingAction] { actions.filter(\.pinned) }
@@ -151,11 +157,15 @@ public enum Secrets {
 
 public enum Engines {
     /// The provider for the current settings, or why there is none.
+    /// Engines that send text off the device need `consented`; on-device and demo never do.
     public static func provider(
-        for config: EngineConfig, demo: Bool = false,
+        for config: EngineConfig, consented: Bool, demo: Bool = false,
         key: (String) -> String? = Secrets.get
     ) -> Result<any LLMProvider, ProviderError> {
         if demo { return .success(DemoProvider()) }
+        if config.sendsTextOffDevice && !consented {
+            return .failure(.unavailable("Allow sending text to \(config.kind.title) in OhMyTranslate first."))
+        }
         switch config.kind {
         case .demo:
             return .success(DemoProvider())

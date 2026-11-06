@@ -45,7 +45,7 @@ struct ExtensionRoot: View {
         let text = context.inputText.map { String($0.characters) } ?? ""
         let model = SheetModel(
             input: text, settings: settings,
-            provider: Engines.provider(for: settings.engine)
+            provider: Engines.provider(for: settings.engine, consented: settings.aiConsent)
         )
         model.onActionUsed = { id in
             var latest = SharedStorage.load()
