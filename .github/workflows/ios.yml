@@ -28,6 +28,9 @@ jobs:
     name: App + extension build and UI tests
     runs-on: macos-15
     timeout-minutes: 45
+    # contents: write lets pushes to dev/* commit the gallery (see the last step).
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Select the newest Xcode
@@ -56,6 +59,19 @@ jobs:
         with:
           name: OhMyTranslate-unsigned-ipa
           path: build/OhMyTranslate-unsigned.ipa
+      - name: Publish the screenshot gallery to docs/gallery
+        if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev/')
+        run: |
+          rm -rf docs/gallery && mkdir -p docs/gallery
+          cp screenshots/*.png docs/gallery/
+          python3 scripts/write-gallery.py docs/gallery
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A docs/gallery
+          if git diff --cached --quiet; then echo "Gallery unchanged"; exit 0; fi
+          git commit -m "Update app gallery screenshots [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Upload build log and test results
         if: failure()
         uses: actions/upload-artifact@v4

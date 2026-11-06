@@ -1,6 +1,7 @@
 import XCTest
 
-/// Drives the Try it sheet with the demo engine (no network) and saves screenshots.
+/// Drives the app with the demo engine (no network). Each step saves a numbered screenshot
+/// into SCREENSHOT_DIR; CI publishes them as docs/gallery.
 final class SheetUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
@@ -8,44 +9,74 @@ final class SheetUITests: XCTestCase {
 
     @MainActor
     func testChipsRerunTheSheetInstantly() throws {
-        let app = XCUIApplication()
-        app.launchArguments = ["-demo"]
-        app.launch()
-
+        let app = launch()
         app.buttons["open-sheet"].tap()
 
         // Opens with Translate; the English sample goes to Chinese.
         let result = app.staticTexts["result"]
         XCTAssertTrue(waitForLabel(result, "Demo · Translate → 简体中文"))
-        screenshot(app, "1-sheet-translate")
 
         app.buttons["lang-ja"].tap()
         XCTAssertTrue(waitForLabel(result, "Demo · Translate → 日本語"))
 
         app.buttons["action-polish"].tap()
         XCTAssertTrue(waitForLabel(result, "Demo · Polish → 日本語"))
-        screenshot(app, "2-sheet-polish")
 
-        // Back to a chip that already ran (from the cache; the unit tests check no second request).
+        // Back to a chip that already ran: shown from the cache (unit tests check no second request).
         app.buttons["action-translate"].tap()
         XCTAssertTrue(waitForLabel(result, "Demo · Translate → 日本語"))
 
         app.buttons["replace"].tap()
         XCTAssertFalse(app.buttons["replace"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.textViews["try-text"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.textViews["try-text"].value as? String, "Demo · Translate → 日本語")
     }
 
+    /// One pass through every screen, saving the state of each step for the gallery.
     @MainActor
-    func testTabsOpen() throws {
+    func testGalleryTour() throws {
+        let app = launch()
+        screenshot(app, "01-try-it")
+
+        app.buttons["open-sheet"].tap()
+        let result = app.staticTexts["result"]
+        XCTAssertTrue(waitForLabel(result, "Demo · Translate → 简体中文"))
+        screenshot(app, "02-sheet-opens-translating")
+
+        app.buttons["lang-ja"].tap()
+        XCTAssertTrue(waitForLabel(result, "Demo · Translate → 日本語"))
+        screenshot(app, "03-sheet-language-switched")
+
+        app.buttons["action-polish"].tap()
+        XCTAssertTrue(waitForLabel(result, "Demo · Polish → 日本語"))
+        screenshot(app, "04-sheet-action-switched")
+
+        let prompt = app.descendants(matching: .any)["quick-prompt"]
+        prompt.tap()
+        prompt.typeText("Make it friendlier")
+        screenshot(app, "05-sheet-quick-prompt-typed")
+
+        app.buttons["Run"].tap()
+        XCTAssertTrue(waitForLabel(result, "Demo · Custom → 日本語"))
+        screenshot(app, "06-sheet-quick-prompt-result")
+
+        app.buttons["replace"].tap()
+        XCTAssertTrue(app.textViews["try-text"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.textViews["try-text"].value as? String, "Demo · Custom → 日本語")
+        screenshot(app, "07-replaced-in-text")
+
+        for (index, tab) in ["Actions", "Languages", "Engine", "Set up"].enumerated() {
+            app.tabBars.buttons[tab].tap()
+            XCTAssertTrue(app.navigationBars[tab].waitForExistence(timeout: 3), tab)
+            screenshot(app, "\(String(format: "%02d", 8 + index))-tab-\(tab.lowercased().replacingOccurrences(of: " ", with: "-"))")
+        }
+    }
+
+    @MainActor
+    private func launch() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-demo"]
         app.launch()
-        for tab in ["Actions", "Languages", "Engine", "Set up"] {
-            app.tabBars.buttons[tab].tap()
-            XCTAssertTrue(app.navigationBars[tab].waitForExistence(timeout: 3), tab)
-            screenshot(app, "tab-\(tab)")
-        }
+        return app
     }
 
     private func waitForLabel(_ element: XCUIElement, _ label: String, timeout: TimeInterval = 5) -> Bool {
@@ -62,8 +93,7 @@ final class SheetUITests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
         if let dir = ProcessInfo.processInfo.environment["SCREENSHOT_DIR"] {
-            let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
-            try? shot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(device)-\(name).png"))
+            try? shot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
         }
     }
 }
