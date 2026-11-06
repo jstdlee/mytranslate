@@ -1,13 +1,14 @@
 import Foundation
 import Observation
 
-/// State of the selection sheet: the chips, the running request and the result.
+/// State of the selection sheet: source and target, the chips, the running request and the result.
 ///
-/// Tapping a chip cancels the running request and starts the new one. Finished results are
-/// cached per action, language and model, so going back to a chip shows its result at once.
+/// The source is detected from the text unless the user picks one. Tapping a chip cancels the
+/// running request and starts the new one. Finished results are cached per action, source,
+/// language and model, so going back to a chip shows its result at once.
 @MainActor
 @Observable
-public final class SheetModel: Identifiable {
+public final class SheetModel {
     public enum Phase: Equatable, Sendable {
         case idle
         case running
@@ -16,9 +17,14 @@ public final class SheetModel: Identifiable {
     }
 
     public let input: String
-    public let source: Language?
+    /// Language the text was detected as; nil when detection is unsure.
+    public let detectedSource: Language?
+    /// The source the user picked; nil means "detect".
+    public private(set) var sourceChoice: Language?
     public let actions: [WritingAction]
-    public let languages: [Language]
+    /// Languages the source menu offers.
+    public var sourceOptions: [Language] { Language.all }
+    public let searchEngine: SearchEngine
 
     public private(set) var action: WritingAction
     public private(set) var target: Language
@@ -33,10 +39,11 @@ public final class SheetModel: Identifiable {
     @ObservationIgnored public var onActionUsed: ((String) -> Void)?
 
     @ObservationIgnored private let provider: (any LLMProvider)?
+    @ObservationIgnored private let prefs: LanguagePrefs
     @ObservationIgnored private var cache: [String: String] = [:]
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var runID = 0
-    /// After a language chip is tapped, rewrite actions also write in that language.
+    /// After a language is picked, the target stops following the detected source.
     @ObservationIgnored private var languageChosen = false
 
     public init(
@@ -46,16 +53,14 @@ public final class SheetModel: Identifiable {
         detector: any LanguageDetecting = SystemLanguageDetector()
     ) {
         self.input = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        let source = detector.detect(input)
-        self.source = source
+        self.prefs = settings.languages
+        self.searchEngine = settings.searchEngine
+        let detected = detector.detect(input)
+        self.detectedSource = detected
         let actions = settings.pinnedActions.isEmpty ? [WritingAction.translate] : settings.pinnedActions
         self.actions = actions
         self.action = actions.first { $0.id == settings.lastActionID } ?? actions[0]
-        let target = settings.languages.autoTarget(for: source)
-        var languages = settings.languages.pinned
-        if !languages.contains(target) { languages.insert(target, at: 0) }
-        self.languages = languages
-        self.target = target
+        self.target = settings.languages.autoTarget(for: detected)
         switch provider {
         case .success(let provider):
             self.provider = provider
@@ -64,6 +69,16 @@ public final class SheetModel: Identifiable {
             self.provider = nil
             self.unavailableReason = error.errorDescription
         }
+    }
+
+    /// The source in use: the user's pick, else the detected language.
+    public var source: Language? { sourceChoice ?? detectedSource }
+
+    /// Chips for the target, in order; the current target is always one of them.
+    public var languages: [Language] {
+        var list = prefs.pinned
+        if !list.contains(target) { list.insert(target, at: 0) }
+        return list
     }
 
     /// The language the current action writes in.
@@ -77,6 +92,14 @@ public final class SheetModel: Identifiable {
 
     /// Runs the current chip. Call when the sheet appears.
     public func start() {
+        run()
+    }
+
+    /// Picks the source language, or detects it again when `language` is nil.
+    public func selectSource(_ language: Language?) {
+        guard language != sourceChoice else { return }
+        sourceChoice = language
+        if !languageChosen { target = prefs.autoTarget(for: source) }
         run()
     }
 
@@ -119,7 +142,8 @@ public final class SheetModel: Identifiable {
     }
 
     private var cacheKey: String {
-        [provider?.cacheID ?? "-", action.id, outputLanguage.code, String(input.hashValue)].joined(separator: "|")
+        [provider?.cacheID ?? "-", action.id, source?.code ?? "-", outputLanguage.code, String(input.hashValue)]
+            .joined(separator: "|")
     }
 
     private func run() {

@@ -82,9 +82,9 @@ struct ActionsView: View {
     }
 }
 
-// MARK: - Languages
+// MARK: - Settings (languages and search)
 
-struct LanguagesView: View {
+struct SettingsView: View {
     @Bindable var store: SettingsStore
 
     var body: some View {
@@ -99,6 +99,15 @@ struct LanguagesView: View {
                     }
                 } footer: {
                     Text("Text in your first language goes to the second one, so one tap works both ways.")
+                }
+                Section {
+                    Picker("Search engine", selection: $store.settings.searchEngine) {
+                        ForEach(SearchEngine.allCases) { Text($0.title).tag($0) }
+                    }
+                } header: {
+                    Text("Search")
+                } footer: {
+                    Text("The search button on the sheet opens web or image results on this engine. DuckDuckGo doesn't build a profile of what you search for.")
                 }
                 Section("Chips on the sheet") {
                     ForEach(Language.all) { language in
@@ -117,7 +126,7 @@ struct LanguagesView: View {
                     }
                 }
             }
-            .navigationTitle("Languages")
+            .navigationTitle("Settings")
         }
     }
 

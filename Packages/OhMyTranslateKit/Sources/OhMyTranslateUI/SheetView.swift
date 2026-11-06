@@ -4,16 +4,20 @@ import OhMyTranslateKit
 import UIKit
 #endif
 
-/// The selection sheet: language chips, action chips, the streamed result, a quick prompt,
-/// and Copy / Replace. The extension and the app's Try it screen both show it.
+/// The selection sheet: source and target languages, writing actions, the source and the result
+/// (each with a read-aloud button), a quick prompt, search, and Copy / Replace.
+/// The extension and the app's Try it screen both show it.
 public struct SheetView: View {
     @Bindable var model: SheetModel
     let allowsReplacement: Bool
     let onReplace: (String) -> Void
     let onExpand: () -> Void
 
-    @FocusState private var promptFocused: Bool
+    @Environment(\.openURL) private var openURL
+    @State private var speaker = Speaker()
+    @State private var sourceExpanded = false
     @State private var copied = false
+    @FocusState private var promptFocused: Bool
 
     public init(
         model: SheetModel, allowsReplacement: Bool,
@@ -26,46 +30,89 @@ public struct SheetView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            languageRow
-            actionRow
-            Divider()
-            result
+        VStack(alignment: .leading, spacing: 10) {
+            languageBar
+            actionBar
+            sourceCard
+            resultCard
             promptField
-            buttons
+            toolbar
         }
         .padding(.horizontal, 16)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
         .onAppear { model.start() }
-        .onDisappear { model.cancel() }
+        .onDisappear {
+            model.cancel()
+            speaker.stop()
+        }
     }
 
-    // MARK: Chips
+    // MARK: Languages and actions
 
-    private var languageRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                if let source = model.source {
-                    Text("\(source.chipLabel) →")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel("From \(source.englishName)")
-                }
-                ForEach(model.languages) { language in
-                    Chip(
-                        title: language.chipLabel,
-                        selected: language == model.outputLanguage
-                    ) { model.select(language) }
-                    .accessibilityIdentifier("lang-\(language.code)")
+    private var languageBar: some View {
+        HStack(spacing: 6) {
+            sourceMenu
+            Image(systemName: "arrow.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(model.languages) { language in
+                        Chip(title: language.chipLabel, selected: language == model.outputLanguage) {
+                            model.select(language)
+                        }
+                        .accessibilityIdentifier("lang-\(language.code)")
+                    }
                 }
             }
         }
     }
 
-    private var actionRow: some View {
+    /// "Auto · English" until the user picks a source; then the chosen language.
+    private var sourceMenu: some View {
+        Menu {
+            Button {
+                model.selectSource(nil)
+            } label: {
+                Label("Detect language", systemImage: model.sourceChoice == nil ? "checkmark" : "sparkles")
+            }
+            Divider()
+            ForEach(model.sourceOptions) { language in
+                Button {
+                    model.selectSource(language)
+                } label: {
+                    if language == model.sourceChoice {
+                        Label(language.chipLabel, systemImage: "checkmark")
+                    } else {
+                        Text(language.chipLabel)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(sourceTitle).lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+            }
+            .font(.subheadline)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color.secondary.opacity(0.12)))
+            .foregroundStyle(.primary)
+        }
+        .accessibilityLabel("Source language, \(sourceTitle)")
+        .accessibilityIdentifier("source-menu")
+    }
+
+    private var sourceTitle: String {
+        if let choice = model.sourceChoice { return choice.chipLabel }
+        if let detected = model.detectedSource { return "Auto · \(detected.chipLabel)" }
+        return "Auto"
+    }
+
+    private var actionBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 ForEach(model.actions) { action in
                     Chip(title: action.title, symbol: action.symbol, selected: action.id == model.action.id) {
                         model.select(action)
@@ -76,36 +123,84 @@ public struct SheetView: View {
         }
     }
 
-    // MARK: Result
+    // MARK: Source and result
 
-    @ViewBuilder
-    private var result: some View {
-        ScrollView {
-            Group {
-                switch model.phase {
-                case .failed(let message):
-                    Label(message, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.secondary)
-                case .running where model.output.isEmpty:
-                    Text(model.input)
-                        .redacted(reason: .placeholder)
-                default:
-                    Text(model.output)
-                        .textSelection(.enabled)
-                }
-            }
-            .font(.body)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityIdentifier("result")
+    private var sourceCard: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(model.input)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .lineLimit(sourceExpanded ? nil : 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { sourceExpanded.toggle() }
+                .accessibilityIdentifier("source-text")
+            speakButton(.source, text: model.input, language: model.source)
         }
-        .frame(minHeight: 80)
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.08)))
+    }
+
+    private var resultCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ScrollView {
+                resultText
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("result")
+            }
+            HStack {
+                Spacer()
+                speakButton(.result, text: model.output, language: model.outputLanguage, enabled: model.phase == .done)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.accentColor.opacity(0.07)))
         .animation(.default, value: model.phase)
     }
 
+    @ViewBuilder
+    private var resultText: some View {
+        switch model.phase {
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.secondary)
+        case .running where model.output.isEmpty:
+            ProgressView()
+        default:
+            Text(model.output)
+                .font(.body)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func speakButton(
+        _ channel: Speaker.Channel, text: String, language: Language?, enabled: Bool = true
+    ) -> some View {
+        let playing = speaker.current == channel
+        return Button {
+            speaker.toggle(text, language: language, channel: channel)
+        } label: {
+            Image(systemName: playing ? "speaker.wave.2.fill" : "speaker.wave.2")
+                .font(.body)
+                .frame(width: 32, height: 32)
+                .symbolEffect(.variableColor.iterative, isActive: playing)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(playing ? Color.accentColor : Color.secondary)
+        .disabled(!enabled || text.isEmpty)
+        .accessibilityLabel(playing ? "Stop reading" : "Read aloud")
+        .accessibilityIdentifier("speak-\(channel.rawValue)")
+    }
+
+    // MARK: Quick prompt and toolbar
+
     private var promptField: some View {
         HStack(spacing: 8) {
-            TextField("Tell it what to do…", text: $model.quickPrompt, axis: .vertical)
-                .lineLimit(1...4)
+            Image(systemName: "text.cursor")
+                .foregroundStyle(.secondary)
+            TextField("Tell it what to change…", text: $model.quickPrompt)
                 .focused($promptFocused)
                 .submitLabel(.send)
                 .onSubmit { model.submitQuickPrompt() }
@@ -114,51 +209,86 @@ public struct SheetView: View {
                 promptFocused = false
                 model.submitQuickPrompt()
             } label: {
-                Image(systemName: "arrow.up.circle.fill").font(.title2)
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.title2)
             }
             .disabled(model.quickPrompt.trimmingCharacters(in: .whitespaces).isEmpty)
             .accessibilityLabel("Run")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))
         .onChange(of: promptFocused) { _, focused in
             if focused { onExpand() }
         }
     }
 
-    private var buttons: some View {
-        HStack(spacing: 12) {
-            Button {
+    private var toolbar: some View {
+        HStack(spacing: 2) {
+            iconButton(copied ? "checkmark" : "doc.on.doc", label: copied ? "Copied" : "Copy") {
                 copy(model.output)
-            } label: {
-                Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
             }
             .disabled(model.phase != .done || model.output.isEmpty)
             .accessibilityIdentifier("copy")
 
-            Button {
+            iconButton("arrow.clockwise", label: "Retry") {
                 model.retry()
-            } label: {
-                Label("Retry", systemImage: "arrow.clockwise")
             }
             .disabled(model.isRunning || model.unavailableReason != nil)
 
-            Spacer()
+            searchMenu
+
+            Spacer(minLength: 8)
 
             if allowsReplacement && model.action.output == .replace {
                 Button {
                     onReplace(model.output)
                 } label: {
                     Label("Replace", systemImage: "checkmark")
-                        .fontWeight(.semibold)
+                        .font(.body.weight(.semibold))
+                        .padding(.horizontal, 6)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!model.canReplace)
                 .accessibilityIdentifier("replace")
             }
         }
-        .labelStyle(.titleAndIcon)
+    }
+
+    private var searchMenu: some View {
+        Menu {
+            ForEach(SearchKind.allCases) { kind in
+                Button {
+                    search(kind)
+                } label: {
+                    Label("\(kind.title) on \(model.searchEngine.title)", systemImage: kind.symbol)
+                }
+                .accessibilityIdentifier("search-\(kind.rawValue)")
+            }
+        } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.title3)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Search the text")
+        .accessibilityIdentifier("search-menu")
+    }
+
+    private func iconButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.title3)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    private func search(_ kind: SearchKind) {
+        guard let url = SearchURL.url(for: model.input, engine: model.searchEngine, kind: kind) else { return }
+        openURL(url)
     }
 
     private func copy(_ text: String) {
@@ -187,11 +317,11 @@ struct Chip: View {
                 Text(title).lineLimit(1)
             }
             .font(.subheadline.weight(selected ? .semibold : .regular))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
             .foregroundStyle(selected ? Color.white : Color.primary)
             .background(
-                Capsule().fill(selected ? Color.accentColor : Color.secondary.opacity(0.15))
+                Capsule().fill(selected ? Color.accentColor : Color.secondary.opacity(0.12))
             )
             .contentShape(Capsule())
         }

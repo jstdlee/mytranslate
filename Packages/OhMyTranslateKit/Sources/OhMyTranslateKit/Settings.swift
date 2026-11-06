@@ -32,8 +32,23 @@ public struct AppSettings: Codable, Hashable, Sendable {
     public var actions: [WritingAction] = WritingAction.builtIn
     public var engine = EngineConfig()
     public var lastActionID: String = WritingAction.translate.id
+    public var searchEngine: SearchEngine = .duckDuckGo
 
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case languages, actions, engine, lastActionID, searchEngine
+    }
+
+    /// Missing keys fall back to defaults, so settings saved by earlier builds still load.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        languages = try c.decodeIfPresent(LanguagePrefs.self, forKey: .languages) ?? .default
+        actions = try c.decodeIfPresent([WritingAction].self, forKey: .actions) ?? WritingAction.builtIn
+        engine = try c.decodeIfPresent(EngineConfig.self, forKey: .engine) ?? EngineConfig()
+        lastActionID = try c.decodeIfPresent(String.self, forKey: .lastActionID) ?? WritingAction.translate.id
+        searchEngine = try c.decodeIfPresent(SearchEngine.self, forKey: .searchEngine) ?? .duckDuckGo
+    }
 
     public var pinnedActions: [WritingAction] { actions.filter(\.pinned) }
 }

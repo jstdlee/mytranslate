@@ -283,3 +283,107 @@ final class MockProvider: LLMProvider, @unchecked Sendable {
         #expect(used == ["shorter", "translate", "shorter"])
     }
 }
+
+@Suite struct SearchTests {
+    @Test func duckDuckGoWebAndImages() throws {
+        let web = try #require(SearchURL.url(for: "hello world", engine: .duckDuckGo, kind: .web))
+        #expect(web.host == "duckduckgo.com")
+        #expect(web.absoluteString.contains("q=hello%20world"))
+        #expect(!web.absoluteString.contains("iax"))
+        let images = try #require(SearchURL.url(for: "cat", engine: .duckDuckGo, kind: .images))
+        #expect(images.absoluteString.contains("iax=images"))
+        #expect(images.absoluteString.contains("ia=images"))
+    }
+
+    @Test func googleWebAndImages() throws {
+        let web = try #require(SearchURL.url(for: "cat", engine: .google, kind: .web))
+        #expect(web.host == "www.google.com")
+        #expect(web.path == "/search")
+        let images = try #require(SearchURL.url(for: "cat", engine: .google, kind: .images))
+        #expect(images.absoluteString.contains("tbm=isch"))
+    }
+
+    @Test func emptyQueryHasNoURL() {
+        #expect(SearchURL.url(for: "   \n", engine: .google, kind: .web) == nil)
+    }
+
+    @Test func queriesWithSymbolsAreEncoded() throws {
+        let url = try #require(SearchURL.url(for: "a&b=c #1", engine: .duckDuckGo, kind: .web))
+        let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "q" })?.value
+        #expect(q == "a&b=c #1")
+    }
+
+    @Test func defaultEngineIsDuckDuckGo() {
+        #expect(AppSettings().searchEngine == .duckDuckGo)
+    }
+
+    @Test func settingsSavedByEarlierBuildsStillLoad() throws {
+        // Only the fields that existed before search was added.
+        let old = #"{"languages":{"pinned":["en"],"primary":"en","secondary":"ja"},"actions":[],"engine":{"kind":"demo","anthropicModel":"claude-opus-5-5","openAIBaseURL":"","openAIModel":""},"lastActionID":"polish"}"#
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(old.utf8))
+        #expect(settings.searchEngine == .duckDuckGo)
+        #expect(settings.lastActionID == "polish")
+        #expect(settings.engine.kind == .demo)
+    }
+}
+
+@MainActor
+@Suite struct SourceTests {
+    func model(text: String = "Dear hs-office, thanks.", detected: Language? = .english, provider: MockProvider = MockProvider()) -> SheetModel {
+        SheetModel(
+            input: text, settings: AppSettings(), provider: .success(provider),
+            detector: FixedDetector(language: detected)
+        )
+    }
+
+    @Test func sourceIsDetectedUntilPicked() {
+        let sheet = model()
+        #expect(sheet.sourceChoice == nil)
+        #expect(sheet.source == .english)
+        #expect(sheet.detectedSource == .english)
+    }
+
+    @Test func pickingASourceOverridesDetection() async {
+        let provider = MockProvider()
+        let sheet = model(provider: provider)
+        sheet.start()
+        await sheet.waitUntilFinished()
+        sheet.selectSource(.japanese)
+        await sheet.waitUntilFinished()
+        #expect(sheet.source == .japanese)
+        #expect(sheet.detectedSource == .english)
+        // Japanese source with the default primary English: the target stays English.
+        #expect(sheet.target == .english)
+        #expect(provider.calls.count == 2)  // the new source starts a new request, not a cache hit
+    }
+
+    @Test func clearingTheChoiceDetectsAgain() async {
+        let sheet = model()
+        sheet.selectSource(.japanese)
+        sheet.selectSource(nil)
+        #expect(sheet.sourceChoice == nil)
+        #expect(sheet.source == .english)
+    }
+
+    @Test func autoTargetFollowsTheSourceUntilALanguageIsTapped() {
+        let sheet = model(detected: .chineseSimplified)
+        #expect(sheet.target == .english)
+        sheet.select(.japanese)
+        sheet.selectSource(.english)
+        #expect(sheet.target == .japanese)
+    }
+
+    @Test func unknownDetectionFallsBackToThePrimaryLanguage() {
+        let sheet = model(detected: nil)
+        #expect(sheet.source == nil)
+        #expect(sheet.target == .english)
+        #expect(sheet.languages.contains(.english))
+    }
+
+    @Test func searchUsesTheDefaultEngineFromSettings() {
+        var settings = AppSettings()
+        settings.searchEngine = .google
+        let sheet = SheetModel(input: "x", settings: settings, provider: .success(MockProvider()), detector: FixedDetector(language: nil))
+        #expect(sheet.searchEngine == .google)
+    }
+}

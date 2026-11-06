@@ -18,6 +18,15 @@ public struct Language: Codable, Hashable, Sendable, Identifiable {
     /// Same base language. Script and region are ignored, so zh-Hans matches zh-Hant.
     public func matches(_ other: Language) -> Bool { baseCode == other.baseCode }
 
+    /// The voice code AVSpeechSynthesisVoice expects: zh-Hans is read as zh-CN, zh-Hant as zh-TW.
+    public var speechCode: String {
+        switch code {
+        case "zh-Hans": return "zh-CN"
+        case "zh-Hant": return "zh-TW"
+        default: return code
+        }
+    }
+
     /// The name used inside prompts, in English: "Japanese", "Chinese, Simplified".
     public var englishName: String {
         Locale(identifier: "en").localizedString(forIdentifier: code) ?? code

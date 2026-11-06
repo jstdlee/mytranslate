@@ -37,8 +37,8 @@ struct RootView: View {
             Tab("Actions", systemImage: "wand.and.stars") {
                 ActionsView(store: store)
             }
-            Tab("Languages", systemImage: "globe") {
-                LanguagesView(store: store)
+            Tab("Settings", systemImage: "gearshape") {
+                SettingsView(store: store)
             }
             Tab("Engine", systemImage: "cpu") {
                 EngineView(store: store)
