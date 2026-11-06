@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import OhMyTranslateKit
 #if canImport(UIKit)
@@ -329,3 +330,4 @@ struct Chip: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
+#endif

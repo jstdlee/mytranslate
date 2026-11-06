@@ -8,7 +8,7 @@ import Observation
 /// language and model, so going back to a chip shows its result at once.
 @MainActor
 @Observable
-public final class SheetModel {
+public final class SheetModel: Identifiable {
     public enum Phase: Equatable, Sendable {
         case idle
         case running
@@ -86,6 +86,9 @@ public final class SheetModel {
         if action.languageMode == .keepSource, !languageChosen, let source { return source }
         return target
     }
+
+    /// Lets the app present the sheet with `sheet(item:)`.
+    nonisolated public var id: ObjectIdentifier { ObjectIdentifier(self) }
 
     public var isRunning: Bool { phase == .running }
     public var canReplace: Bool { phase == .done && action.output == .replace && !output.isEmpty }
