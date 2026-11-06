@@ -1,0 +1,10 @@
+*.xcodeproj/
+OhMyTranslate/Info.plist
+TranslateExtension/Info.plist
+build/
+screenshots/
+DerivedData/
+.build/
+.swiftpm/
+.DS_Store
+xcuserdata/

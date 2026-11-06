@@ -1,0 +1,98 @@
+# XcodeGen spec. CI runs `xcodegen generate` to make OhMyTranslate.xcodeproj (not committed).
+name: OhMyTranslate
+options:
+  bundleIdPrefix: com.jstdlee
+  deploymentTarget:
+    iOS: "18.4"   # TranslationUIProvider (default translation app) starts at 18.4
+  developmentLanguage: en
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1,2"
+packages:
+  OhMyTranslateKit:
+    path: Packages/OhMyTranslateKit
+targets:
+  OhMyTranslate:
+    type: application
+    platform: iOS
+    sources:
+      - path: OhMyTranslate
+        excludes: ["*.entitlements"]
+    dependencies:
+      - package: OhMyTranslateKit
+        products: [OhMyTranslateKit, OhMyTranslateUI]
+      - target: TranslateExtension
+        embed: true
+    info:
+      path: OhMyTranslate/Info.plist
+      properties:
+        CFBundleDisplayName: OhMyTranslate
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # The extension calls Claude or another server.
+        com.apple.developer.translation-ui-provider.network-access: true
+        OMTKeychainGroup: $(AppIdentifierPrefix)com.jstdlee.ohmytranslate
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jstdlee.ohmytranslate
+        # The Translation capability, App Group and Keychain group need a signed device build.
+        CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: OhMyTranslate/OhMyTranslate.entitlements
+
+  TranslateExtension:
+    type: extensionkit-extension
+    platform: iOS
+    sources:
+      - path: TranslateExtension
+        excludes: ["*.entitlements"]
+    dependencies:
+      - package: OhMyTranslateKit
+        products: [OhMyTranslateKit, OhMyTranslateUI]
+      - sdk: TranslationUIProvider.framework
+      - sdk: ExtensionKit.framework
+    info:
+      path: TranslateExtension/Info.plist
+      properties:
+        CFBundleDisplayName: OhMyTranslate
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        OMTKeychainGroup: $(AppIdentifierPrefix)com.jstdlee.ohmytranslate
+        EXAppExtensionAttributes:
+          EXExtensionPointIdentifier: com.apple.public.translation-ui-provider
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jstdlee.ohmytranslate.translate
+        CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: TranslateExtension/TranslateExtension.entitlements
+
+  OhMyTranslateUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [OhMyTranslateUITests]
+    dependencies:
+      - target: OhMyTranslate
+
+schemes:
+  OhMyTranslate:
+    build:
+      targets:
+        OhMyTranslate: all
+        TranslateExtension: all
+    test:
+      targets:
+        - OhMyTranslateUITests
