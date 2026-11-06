@@ -7,7 +7,7 @@ import Observation
 /// cached per action, language and model, so going back to a chip shows its result at once.
 @MainActor
 @Observable
-public final class SheetModel {
+public final class SheetModel: Identifiable {
     public enum Phase: Equatable, Sendable {
         case idle
         case running
@@ -140,6 +140,7 @@ public final class SheetModel {
         if let cached = cache[key] {
             output = cached
             phase = .done
+            if !action.id.hasPrefix("quick:") { onActionUsed?(action.id) }
             return
         }
         let request = PromptBuilder.request(

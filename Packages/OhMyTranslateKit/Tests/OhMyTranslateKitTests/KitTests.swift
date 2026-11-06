@@ -277,6 +277,9 @@ final class MockProvider: LLMProvider, @unchecked Sendable {
         sheet.onActionUsed = { used.append($0) }
         sheet.select(WritingAction.builtIn.first { $0.id == "shorter" }!)
         await sheet.waitUntilFinished()
-        #expect(used == ["shorter"])
+        sheet.select(WritingAction.translate)
+        await sheet.waitUntilFinished()
+        sheet.select(WritingAction.builtIn.first { $0.id == "shorter" }!)  // from the cache
+        #expect(used == ["shorter", "translate", "shorter"])
     }
 }

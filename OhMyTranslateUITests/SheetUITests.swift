@@ -26,9 +26,9 @@ final class SheetUITests: XCTestCase {
         XCTAssertTrue(waitForLabel(result, "Demo · Polish → 日本語"))
         screenshot(app, "2-sheet-polish")
 
-        // Back to a chip that already ran: shown from the cache.
+        // Back to a chip that already ran (from the cache; the unit tests check no second request).
         app.buttons["action-translate"].tap()
-        XCTAssertTrue(waitForLabel(result, "Demo · Translate → 日本語", timeout: 1))
+        XCTAssertTrue(waitForLabel(result, "Demo · Translate → 日本語"))
 
         app.buttons["replace"].tap()
         XCTAssertFalse(app.buttons["replace"].waitForExistence(timeout: 2))

@@ -54,10 +54,6 @@ struct TryItView: View {
     }
 }
 
-extension SheetModel: Identifiable {
-    public nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
-}
-
 // MARK: - Actions
 
 struct ActionsView: View {

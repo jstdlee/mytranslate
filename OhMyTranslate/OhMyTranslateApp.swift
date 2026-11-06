@@ -3,9 +3,20 @@ import SwiftUI
 
 @main
 struct OhMyTranslateApp: App {
-    @State private var store = SettingsStore()
-    /// UI tests and screenshots: the demo engine, no network.
-    private let demo = ProcessInfo.processInfo.arguments.contains("-demo")
+    /// UI tests and screenshots: the demo engine, no network, fresh settings on each launch.
+    private let demo: Bool
+    @State private var store: SettingsStore
+
+    init() {
+        let demo = ProcessInfo.processInfo.arguments.contains("-demo")
+        self.demo = demo
+        if demo, let defaults = UserDefaults(suiteName: "com.jstdlee.ohmytranslate.demo") {
+            defaults.removePersistentDomain(forName: "com.jstdlee.ohmytranslate.demo")
+            _store = State(initialValue: SettingsStore(defaults: defaults))
+        } else {
+            _store = State(initialValue: SettingsStore())
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
